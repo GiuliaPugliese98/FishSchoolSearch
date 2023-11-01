@@ -75,7 +75,7 @@ typedef struct {
 	VECTOR deltax;
 	VECTOR baricentro;
 	int rand;
-	type wbranco;
+	type fishesWeight;
 	type stepindIni; //parametro stepind
 	type stepvolIni; //parametro stepvol
 }var;
@@ -93,10 +93,10 @@ int allineamentoPerfetto=0;
 * 	di memoria, ma a scelta del candidato possono essere 
 * 	memorizzate mediante array di array (float**).
 * 
-* 	In entrambi i casi il candidato dovrà inoltre scegliere se memorizzare le
+* 	In entrambi i casi il candidato dovrï¿½ inoltre scegliere se memorizzare le
 * 	matrici per righe (row-major order) o per colonne (column major-order).
 *
-* 	L'assunzione corrente è che le matrici siano in row-major order.
+* 	L'assunzione corrente ï¿½ che le matrici siano in row-major order.
 * 
 */
 
@@ -130,7 +130,7 @@ void dealloc_matrix(MATRIX mat) {
 * 	successivi N*M*4 byte: matrix data in row-major order --> numeri floating-point a precisione singola
 * 
 *****************************************************************************
-*	Se lo si ritiene opportuno, è possibile cambiare la codifica in memoria
+*	Se lo si ritiene opportuno, ï¿½ possibile cambiare la codifica in memoria
 * 	della matrice. 
 *****************************************************************************
 * 
@@ -464,8 +464,8 @@ void movimentoIndividuale(params* input,var* vars,int pesce,int it){
 }//
 
 void alimentazione(params* input, var* vars){
-    vars-> wbranco=pesoTot(vars->w,np);
-    //printf("%f ", vars->wbranco);
+    vars-> fishesWeight=pesoTot(vars->w,np);
+    //printf("%f ", vars->fishesWeight);
     if(effettuato){
         type max=-minimoVettore(vars->deltaf,np);
         if(max>EPSILON){
@@ -500,7 +500,7 @@ void baricentro(params* input, var* vars){
 
 void movimentoVolitivo(params* input, var* vars,int it){ 
     int segno=1;
-    if(pesoTot(vars->w,np)>vars->wbranco){
+    if(pesoTot(vars->w,np)>vars->fishesWeight){
         segno=-1;
         //printf("pesoAumentato.");
     }
@@ -555,10 +555,10 @@ void init(params* input, var* vars){
     vars->baricentro=get_block(sizeof(type),input->d);
     input->xh=get_block(sizeof(type),input->d);
     vars->rand=0;
-    vars->wbranco=0;
+    vars->fishesWeight=0;
     for(int i=0;i<input->np;i++){
         vars->w[i]=input->wscale/2;
-        vars->wbranco+= vars->w[i];
+        vars->fishesWeight+= vars->w[i];
     }
     for(int i=0;i<input->d;i++){
     	vars->baricentro[i]=0;

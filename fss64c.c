@@ -73,7 +73,7 @@ typedef struct {
 	VECTOR deltax;
 	VECTOR baricentro;
 	int rand;
-	type wbranco;
+	type fishesWeight;
 	type stepindIni; //parametro stepind
 	type stepvolIni; //parametro stepvol
 }var;
@@ -91,10 +91,10 @@ int allineamentoPerfetto=0;
 * 	di memoria, ma a scelta del candidato possono essere 
 * 	memorizzate mediante array di array (double**).
 * 
-* 	In entrambi i casi il candidato dovr� inoltre scegliere se memorizzare le
+* 	In entrambi i casi il candidato dovr� inoltre scegliere se memorizzare le
 * 	matrici per righe (row-major order) o per colonne (column major-order).
 *
-* 	L'assunzione corrente � che le matrici siano in row-major order.
+* 	L'assunzione corrente � che le matrici siano in row-major order.
 * 
 */
 
@@ -128,7 +128,7 @@ void dealloc_matrix(MATRIX mat) {
 * 	successivi N*M*4 byte: matrix data in row-major order --> numeri doubleing-point a precisione singola
 * 
 *****************************************************************************
-*	Se lo si ritiene opportuno, � possibile cambiare la codifica in memoria
+*	Se lo si ritiene opportuno, � possibile cambiare la codifica in memoria
 * 	della matrice. 
 *****************************************************************************
 * 
@@ -202,34 +202,57 @@ extern void prodVet_x_Scalare(VECTOR v1, type s, VECTOR ris, int dim);
 extern void prodVet_x_ScalareUn(VECTOR v1, type s, VECTOR ris, int dim);
 ///////////
 
-VECTOR copyAlnVector(VECTOR v, int inizio, int dim){
-    if(inizio % allineamento == 0)
-        return v+inizio;
-	VECTOR ret=get_block(sizeof(type),dim);
-    int unrolling=16;
-    int i=0;
-	for(i=0;i+unrolling<dim;i+=unrolling){
-		ret[i]=v[i+inizio];
-        ret[i+1]=v[i+inizio+1];
-        ret[i+2]=v[i+inizio+2];
-        ret[i+3]=v[i+inizio+3];
-        ret[i+4]=v[i+inizio+4];
-        ret[i+5]=v[i+inizio+5];
-        ret[i+6]=v[i+inizio+6];
-        ret[i+7]=v[i+inizio+7];
-	    ret[i+8]=v[i+inizio+8];
-        ret[i+9]=v[i+inizio+9];
-        ret[i+10]=v[i+inizio+10];
-        ret[i+11]=v[i+inizio+11];
-        ret[i+12]=v[i+inizio+12];
-        ret[i+13]=v[i+inizio+13];
-        ret[i+14]=v[i+inizio+14];
-        ret[i+15]=v[i+inizio+15];
+/*
+ * Questa funzione copia un vettore di dimensione `dim` a partire dall'indice `inizio` di un altro vettore.
+ * Se l'indice di inizio è un multiplo dell'allineamento, la funzione restituisce il puntatore al vettore originale, senza copiare alcun elemento.
+ * Altrimenti, alloca un blocco di memoria di dimensione `dim` elementi, di tipo `type`, e copia il vettore a partire dall'indice `inizio`.
+ * Il ciclo unrollato consente di copiare `unrolling` elementi alla volta, con un miglioramento delle prestazioni.
+ * La funzione `get_block()` alloca un blocco di memoria con allineamento a 32 byte, per ottimizzare le prestazioni delle operazioni di memoria.
+ */
+
+	VECTOR copyAlnVector(VECTOR v, int inizio, int dim){
+
+		/* Controlla se l'indice di inizio è un multiplo dell'allineamento. */
+		if(inizio % allineamento == 0)
+			return v+inizio;
+
+		/* Alloca un blocco di memoria di dimensione `dim` elementi, di tipo `type`. */
+		VECTOR ret=get_block(sizeof(type),dim);
+
+		/* Definisce il numero di elementi da copiare in un ciclo unrollato. */
+		int unrolling=16;
+
+		/* Indice del ciclo for. */
+		int i=0;
+
+		/* Ciclo unrollato che copia `unrolling` elementi alla volta. */
+		for(i=0;i+unrolling<dim;i+=unrolling){
+			ret[i]=v[i+inizio];
+			ret[i+1]=v[i+inizio+1];
+			ret[i+2]=v[i+inizio+2];
+			ret[i+3]=v[i+inizio+3];
+			ret[i+4]=v[i+inizio+4];
+			ret[i+5]=v[i+inizio+5];
+			ret[i+6]=v[i+inizio+6];
+			ret[i+7]=v[i+inizio+7];
+			ret[i+8]=v[i+inizio+8];
+			ret[i+9]=v[i+inizio+9];
+			ret[i+10]=v[i+inizio+10];
+			ret[i+11]=v[i+inizio+11];
+			ret[i+12]=v[i+inizio+12];
+			ret[i+13]=v[i+inizio+13];
+			ret[i+14]=v[i+inizio+14];
+			ret[i+15]=v[i+inizio+15];
+		}
+
+		/* Ciclo che copia gli elementi rimanenti. */
+		for(;i<dim;i++)
+			ret[i]=v[i+inizio];
+
+		/* Restituisce il puntatore al vettore copiato. */
+		return ret;
 	}
-    for(;i<dim;i++)
-        ret[i]=v[i+inizio];
-	return ret;	
-}
+
 
 /*
 void addVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
@@ -285,13 +308,22 @@ void subVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
 
 
 
+// Funzione funzione()
 type funzione(VECTOR vettore,params* input,int dim){
-	type x2 = prodScalare(vettore,vettore,dim);
-	type ex2 =(type)exp(x2);
-	type cx = prodScalare(input->c,vettore,dim);
-	
-	return ex2+x2-cx;
-}
+
+    // Calcola il prodotto scalare tra il vettore e se stesso.
+    type x2 = prodScalare(vettore,vettore,dim);
+
+    // Calcola l'esponenziale del prodotto scalare.
+    type ex2 = (type)exp(x2);
+
+    // Calcola il prodotto scalare tra il vettore e il vettore c.
+    type cx = prodScalare(input->c,vettore,dim);
+
+    // Restituisce la funzione obiettivo.
+    return ex2+x2-cx;
+}//funzione
+
 
 type funzioneMatrix(MATRIX matrice,params* input,int inizio,int dim){
     //VECTOR vettore=matrice+inizio*dim*sizeof(type);
@@ -399,78 +431,149 @@ void prodTrasMatVet(MATRIX matrix,VECTOR vector, VECTOR ris, int righe,int dim){
     
 }
 
+// Funzione minimoVettore()
 type minimoVettore(VECTOR vector,int dim){
-	int index=0;
-	type min=vector[0];
-	for(int i=0;i<dim;i++){
-		if(vector[i]<min){
-			index=i;
-			min=(vector[i]);
-		}
-	}
-	return vector[index];
-}
 
+    // Dichiara una variabile index per memorizzare l'indice dell'elemento minimo del vettore.
+    int index=0;
+
+    // Inizializza la variabile min con il valore del primo elemento del vettore.
+    type min=vector[0];
+
+    // Cicla su tutti gli elementi del vettore.
+    for(int i=0;i<dim;i++){
+
+        // Se l'elemento corrente del vettore è minore del valore minimo attuale,
+        // allora aggiorna l'indice dell'elemento minimo e il valore minimo.
+        if(vector[i]<min){
+            index=i;
+            min=(vector[i]);
+        }
+    }
+
+    // Restituisce il valore minimo del vettore.
+    return vector[index];
+}//minimoVettore
+
+
+// Funzione zeroRowMatrix()
 void zeroRowMatrix(MATRIX matrix, int riga, int dim){
-	for(int i=0;i<dim; i++){
-		matrix[riga*dim+i]=0;
-	}//for
-}//zero
 
+    // Azzera tutti gli elementi della riga di matrice specificata da riga.
+    for(int i=0;i<dim; i++){
+        matrix[riga*dim+i]=0;
+    }//for
+}//zeroRowMatrix
+
+
+// Funzione replaceMatrixRowVector()
 void replaceMatrixRowVector(MATRIX matrix,VECTOR vector,int riga, int dim){
-	for(int i=0;i<dim; i++){
-		matrix[riga*dim+i]=vector[i];
-	}//for
-}
 
+    // Sostituisce la riga di matrice specificata da riga con il vettore vector.
+    for(int i=0;i<dim; i++){
+        matrix[riga*dim+i]=vector[i];
+    }//for
+}//replaceMatrixRowVector
+
+
+// Funzione generaPosizioneCasuale()
 void generaPosizioneCasuale(VECTOR pos,MATRIX posPesci,int pesce,int dim,params* input,var* vars ){
 	for(int i=0;i<dim; i++){
-		pos[i]=posPesci[pesce*dim+i]+(getRand(input,vars)*2-1)*input->stepind;
+
+        // Genera un numero casuale nell'intervallo [-1,1].
+        double rand=getRand(input,vars);
+
+        // Calcola la nuova posizione del pesce.
+        pos[i]=posPesci[pesce*dim+i]+(rand*2-1)*input->stepind;
 	}//for
-}
-
-
+}//generaPosizioneCasuale
 
 ///////////
 
 
+// Funzione movimentoIndividuale()
 void movimentoIndividuale(params* input,var* vars,int pesce){
+
+    // Dichiara una variabile newPosition di tipo VECTOR e alloca in memoria d elementi di tipo type.
     VECTOR newPosition=get_block(sizeof(type),d);
+
+    // Genera una posizione casuale per il pesce.
     generaPosizioneCasuale(newPosition,input->x,pesce,d,input,vars);
-    type deltaf= funzione(newPosition,input,d)-funzioneMatrix(input->x ,input,pesce*d,d);  
+
+    // Calcola la variazione della funzione deltaf tra la nuova posizione e la posizione corrente.
+    type deltaf= funzione(newPosition,input,d)-funzioneMatrix(input->x ,input,pesce*d,d);
+
+    // Se la variazione della funzione deltaf è negativa, il pesce si sposta alla nuova posizione.
     if(deltaf<0){
+
+        // Segna che il pesce si è mosso.
         effettuato=1;
+
+        // Aggiorna la variazione della funzione deltaf del pesce.
         vars->deltaf[pesce]=deltaf;
-        VECTOR x_i=copyAlnVector(input->x,pesce*d,d);
-        //VECTOR x_i=input->x+pesce*d*sizeof(type);
-        VECTOR deltax_i=get_block(sizeof(type),d);
-        subVettori(newPosition,x_i,deltax_i,d);
-        replaceMatrixRowVector(vars->deltax,deltax_i,pesce,d);
+
+        // Copia la posizione corrente del pesce in una variabile temporanea currentFishPosition.
+        VECTOR currentFishPosition=copyAlnVector(input->x,pesce*d,d);
+
+        // Calcola lo spostamento del pesce.
+        VECTOR deltaCurrentFishPosition=get_block(sizeof(type),d);
+        subVettori(newPosition,currentFishPosition,deltaCurrentFishPosition,d);
+
+        // Aggiorna la matrice deltax con lo spostamento del pesce.
+        replaceMatrixRowVector(vars->deltax,deltaCurrentFishPosition,pesce,d);
+
+        // Aggiorna la matrice x con la nuova posizione del pesce.
         replaceMatrixRowVector(input->x,newPosition,pesce,d);
+
+        // Se l'indice di inizio della posizione del pesce non è un multiplo dell'allineamento, libera la memoria allocata per la variabile temporanea currentFishPosition.
         if((pesce*d%allineamento)!=0)
-            free_block(x_i);
-        free_block(deltax_i);
+            free_block(currentFishPosition);
+
+        // Libera la memoria allocata per la variabile deltaCurrentFishPosition.
+        free_block(deltaCurrentFishPosition);
     }//if
+
+    // Altrimenti, il pesce rimane nella sua posizione corrente e la sua variazione della funzione deltaf viene azzerata.
     else{
         zeroRowMatrix(vars->deltax,pesce,d);
         vars->deltaf[pesce]=0;
     }//else
-    free_block(newPosition);
-}//
 
+    // Libera la memoria allocata per la variabile newPosition.
+    free_block(newPosition);
+}//movimentoIndividuale
+
+
+// Funzione alimentazione()
 void alimentazione(params* input, var* vars){
-    vars-> wbranco=pesoTot(vars->w,np);
-    //printf("%f ", vars->wbranco);
+
+    // Calcola il peso totale dei pesci.
+    vars->fishesWeight=pesoTot(vars->w,np);
+
+    // Se è stato effettuato almeno uno spostamento, allora si alimenta la popolazione.
     if(effettuato){
+
+        // Trova il valore massimo della variazione della funzione.
         type max=-minimoVettore(vars->deltaf,np);
+
+        // Se il valore massimo della variazione della funzione è maggiore di una certa soglia, allora si alimentano i pesci.
         if(max>EPSILON){
-        	    VECTOR ris=get_block(sizeof(type),np);
-            	prodVet_x_Scalare(vars->deltaf,(type)1.0/max,ris,np);
-            	subVettori(vars->w,ris,vars->w, np);
-            	free_block(ris);
+
+            // Alloca un vettore temporaneo ris.
+            VECTOR ris=get_block(sizeof(type),np);
+
+            // Calcola il prodotto scalare tra un vettore e un numero scalare, calcola quindi la normalizzazione della variazione della funzione.
+            prodVet_x_Scalare(vars->deltaf,(type)1.0/max,ris,np);
+
+            // Aggiorna i pesi dei pesci.
+            subVettori(vars->w,ris,vars->w, np);
+
+            // Libera la memoria allocata per il vettore ris.
+            free_block(ris);
         }//if
     }//if
 }//alimentazione
+
 
 void movimentoIstintivo(params* input, var* vars){
     if(effettuato){
@@ -495,7 +598,7 @@ void baricentro(params* input, var* vars){
 
 void movimentoVolitivo(params* input, var* vars){ 
     int segno=1;
-    if(pesoTot(vars->w,np)>vars->wbranco){
+    if(pesoTot(vars->w,np)>vars->fishesWeight){
         segno=-1;
         //printf("pesoAumentato.");
     }
@@ -548,10 +651,10 @@ void init(params* input, var* vars){
     vars->baricentro=get_block(sizeof(type),input->d);
     input->xh=get_block(sizeof(type),input->d);
     vars->rand=0;
-    vars->wbranco=0;
+    vars->fishesWeight=0;
     for(int i=0;i<input->np;i++){
         vars->w[i]=input->wscale/2;
-        vars->wbranco+= vars->w[i];
+        vars->fishesWeight+= vars->w[i];
     }
     for(int i=0;i<input->d;i++){
     	vars->baricentro[i]=0;
@@ -586,6 +689,8 @@ void fss(params* input){
     minimo(input);	
 }
 
+
+// main dove sono impostati tutti i controlli su parametri di input
 int main(int argc, char** argv) {
 
 	char fname[256];

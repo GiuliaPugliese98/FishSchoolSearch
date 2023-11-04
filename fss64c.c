@@ -339,96 +339,121 @@ type getRand(params* input,var* vars){
 	return input->r[vars->rand++];
 }
 
-void addMatriceVettore(MATRIX matrix,VECTOR vector,int riga,int d){
-    if((riga*d%allineamento)==0){
-        addVettori(matrix+riga*d,vector,matrix+riga*d,d);
-    }
-    else{
-        int unroll=4;
-        int i=0;
-	    for( i=0;i+unroll<d;i+=unroll){
-		    matrix[riga*d+i]+=vector[i];
-            matrix[riga*d+i+1]+=vector[i+1];
-            matrix[riga*d+i+2]+=vector[i+2];
-            matrix[riga*d+i+3]+=vector[i+3];
-	    }
-        for(;i<d;i++)
-            matrix[riga*d+i]+=vector[i];
+void addMatriceVettore(MATRIX matrix, VECTOR vector, int riga, int d) {
+    
+	if ((riga * d % allineamento) == 0) {
+      
+	    // Somma vector alla riga riga di matrix con allineamento
+        addVettori(matrix + riga * d, vector, matrix + riga * d, d);
+    
+	} else {
+        int unroll = 4;
+        int i = 0;
+    
+	    for (i = 0; i + unroll < d; i += unroll) {
+    
+	        // Somma vector alla riga riga di matrix senza allineamento
+            matrix[riga * d + i] += vector[i];
+            matrix[riga * d + i + 1] += vector[i + 1];
+            matrix[riga * d + i + 2] += vector[i + 2];
+            matrix[riga * d + i + 3] += vector[i + 3];
+        }
+    
+	    for (; i < d; i++) {
+    
+	        // Ripeti il calcolo per le componenti rimanenti
+            matrix[riga * d + i] += vector[i];
+        }
     }
 }
 
-void addMatriceVettoreBroad(MATRIX matrix,VECTOR vector,int d){
-    int unroll=4;
-    int pesce=0;    
-    for(pesce=0;pesce+unroll<np;pesce+=unroll){
-		addMatriceVettore(matrix,vector,pesce,d);
-        addMatriceVettore(matrix,vector,pesce+1,d);
-        addMatriceVettore(matrix,vector,pesce+2,d);
-        addMatriceVettore(matrix,vector,pesce+3,d);
-    }
-    for(;pesce<np;pesce++)
-        addMatriceVettore(matrix,vector,pesce,d);
+void addMatriceVettoreBroad(MATRIX matrix, VECTOR vector, int d) {
     
+	int unroll = 4;
+    int pesce = 0;
+    
+	for (pesce = 0; pesce + unroll < np; pesce += unroll) {
+       
+	    // Somma vector alla riga pesce di matrix
+        addMatriceVettore(matrix, vector, pesce, d);
+    }
+    
+	for (; pesce < np; pesce++) {
+        
+		// Somma vector alla riga pesce di matrix
+        addMatriceVettore(matrix, vector, pesce, d);
+    }
 }
 
-void prodTrasMatVet(MATRIX matrix,VECTOR vector, VECTOR ris, int righe,int dim){	
-    VECTOR parz=get_block(sizeof(type),d);    
-    int unroll=4;    
-    for(int i=0;i<dim;i++){
-		ris[i]=0;
-	}
-    int pesce=0;
-    if(allineamentoPerfetto){
-         for(pesce=0;pesce+unroll<righe;pesce+=4){
-            prodVet_x_Scalare(matrix+pesce*dim,vector[pesce],parz,dim);
-            addVettori(ris,parz,ris,dim);
-            prodVet_x_Scalare(matrix+(pesce+1)*dim,vector[pesce+1],parz,dim);
-            addVettori(ris,parz,ris,dim);
-            prodVet_x_Scalare(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
-            addVettori(ris,parz,ris,dim);
-            prodVet_x_Scalare(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
-            addVettori(ris,parz,ris,dim);
+void prodTrasMatVet(MATRIX matrix, VECTOR vector, VECTOR ris, int righe, int dim) {
+   
+   // Alloca memoria per un vettore parz
+    VECTOR parz = get_block(sizeof(type), dim);
+    int unroll = 4;
+   
+    // Inizializza il vettore ris a zero
+    for (int i = 0; i < dim; i++) {
+        ris[i] = 0;
+    }
+   
+    int pesce = 0;
+   
+    // Verifica se è possibile ottimizzare il calcolo con allineamento perfetto
+    if (allineamentoPerfetto) {
+   
+        // Loop ottimizzato per allineamento perfetto
+        for (pesce = 0; pesce + unroll < righe; pesce += 4) {
+   
+            // Calcola il prodotto tra matrix e vector[pesce] e memorizza il risultato in parz
+			//matrix + pesce * dim sposta il puntatore matrix di pesce * dim elementi nella memoria
+            prodVet_x_Scalare(matrix + pesce * dim, vector[pesce], parz, dim);
+   
+            // Somma parz a ris
+            addVettori(ris, parz, ris, dim);
+        }
+    } else {
+        
+		// Loop per allineamento non perfetto
+        for (pesce = 0; pesce + unroll < righe; pesce += 4) {
+        
+		    if ((pesce * dim % allineamento) == 0) {
+        
+		        // Calcola il prodotto con allineamento per matrix[pesce] e memorizza il risultato in parz
+                prodVet_x_Scalare(matrix + pesce * dim, vector[pesce], parz, dim);
+        
+		        // Somma parz a ris
+                addVettori(ris, parz, ris, dim);
+            } else {
+                
+				// Calcola il prodotto senza allineamento per matrix[pesce] e memorizza il risultato in parz
+                prodVet_x_ScalareUn(matrix + pesce * dim, vector[pesce], parz, dim);
+                
+				// Somma parz a ris
+                addVettori(ris, parz, ris, dim);
+            }
+        }
+    }
+    
+	// Vengono processate le righe rimanenti che non sono state elaborate durante il loop principale
+    for (; pesce < righe; pesce++) {
+    
+	    if ((pesce * dim % allineamento) == 0) {
+    
+	        // Calcola il prodotto con allineamento per matrix[pesce] e memorizza il risultato in parz
+            prodVet_x_Scalare(matrix + pesce * dim, vector[pesce], parz, dim);
+    
+	    } else {
+    
+	        // Calcola il prodotto senza allineamento per matrix[pesce] e memorizza il risultato in parz
+            prodVet_x_ScalareUn(matrix + pesce * dim, vector[pesce], parz, dim);
         }
     
+	    // Somma parz a ris
+        addVettori(ris, parz, ris, dim);
     }
-    else{	
-        for(pesce=0;pesce+unroll<righe;pesce+=4){
-           
-            if((pesce*dim%allineamento)==0){
-                prodVet_x_Scalare(matrix+pesce*dim,vector[pesce],parz,dim);
-                addVettori(ris,parz,ris,dim);
-                prodVet_x_ScalareUn(matrix+(pesce+1)*dim,vector[pesce+1],parz,dim);
-                addVettori(ris,parz,ris,dim);
-                prodVet_x_ScalareUn(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
-                addVettori(ris,parz,ris,dim);
-                prodVet_x_ScalareUn(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
-                addVettori(ris,parz,ris,dim);
-            }
-            else{
-                prodVet_x_ScalareUn(matrix+pesce*dim,vector[pesce],parz,dim);
-                addVettori(ris,parz,ris,dim);
-                 prodVet_x_ScalareUn(matrix+(pesce+1)*dim,vector[pesce+1],parz,dim);
-                addVettori(ris,parz,ris,dim);
-                 prodVet_x_ScalareUn(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
-                addVettori(ris,parz,ris,dim);
-                 prodVet_x_ScalareUn(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
-                addVettori(ris,parz,ris,dim);
-            }
-           
-        }
-    }
-    for(;pesce<righe;pesce++){
-        if((pesce*dim%allineamento)==0){
-            prodVet_x_Scalare(matrix+pesce*dim,vector[pesce],parz,dim);
-        }
-        else{
-            prodVet_x_ScalareUn(matrix+pesce*dim,vector[pesce],parz,dim);
-        }
-    }
-        addVettori(ris,parz,ris,dim);
+    
+	// Libera la memoria allocata per parz
     free_block(parz);
-               
-    
 }
 
 // Funzione minimoVettore()
@@ -476,7 +501,7 @@ void replaceMatrixRowVector(MATRIX matrix,VECTOR vector,int riga, int dim){
 }//replaceMatrixRowVector
 
 
-// Funzione generaPosizioneCasuale()
+// Funzione generaPosizioneCasuale() 
 void generaPosizioneCasuale(VECTOR pos,MATRIX posPesci,int pesce,int dim,params* input,var* vars ){
 	for(int i=0;i<dim; i++){
 
@@ -484,6 +509,7 @@ void generaPosizioneCasuale(VECTOR pos,MATRIX posPesci,int pesce,int dim,params*
         double rand=getRand(input,vars);
 
         // Calcola la nuova posizione del pesce.
+		//yi (j) = xi (j) + rand(−1, 1) · step ind 
         pos[i]=posPesci[pesce*dim+i]+(rand*2-1)*input->stepind;
 	}//for
 }//generaPosizioneCasuale
@@ -500,7 +526,8 @@ void movimentoIndividuale(params* input,var* vars,int pesce){
     // Genera una posizione casuale per il pesce.
     generaPosizioneCasuale(newPosition,input->x,pesce,d,input,vars);
 
-    // Calcola la variazione della funzione deltaf tra la nuova posizione e la posizione corrente.
+    // Calcola la variazione della funzione deltaf tra la nuova posizione e la posizione corrente. 
+	//∆fi = f (yi) − f (xi)
     type deltaf= funzione(newPosition,input,d)-funzioneMatrix(input->x ,input,pesce*d,d);
 
     // Se la variazione della funzione deltaf è negativa, il pesce si sposta alla nuova posizione.
@@ -515,8 +542,9 @@ void movimentoIndividuale(params* input,var* vars,int pesce){
         // Copia la posizione corrente del pesce in una variabile temporanea currentFishPosition.
         VECTOR currentFishPosition=copyAlnVector(input->x,pesce*d,d);
 
-        // Calcola lo spostamento del pesce.
+        // Calcola lo spostamento del pesce. 
         VECTOR deltaCurrentFishPosition=get_block(sizeof(type),d);
+		//∆xi = yi − xi
         subVettori(newPosition,currentFishPosition,deltaCurrentFishPosition,d);
 
         // Aggiorna la matrice deltax con lo spostamento del pesce.
@@ -535,7 +563,9 @@ void movimentoIndividuale(params* input,var* vars,int pesce){
 
     // Altrimenti, il pesce rimane nella sua posizione corrente e la sua variazione della funzione deltaf viene azzerata.
     else{
+		//∆xi = yi − xi = 0
         zeroRowMatrix(vars->deltax,pesce,d);
+		//∆fi = f (yi) − f (xi) = 0
         vars->deltaf[pesce]=0;
     }//else
 
@@ -544,7 +574,7 @@ void movimentoIndividuale(params* input,var* vars,int pesce){
 }//movimentoIndividuale
 
 
-// Funzione alimentazione()
+// alimentazione
 void alimentazione(params* input, var* vars){
 
     // Calcola il peso totale dei pesci.
@@ -554,6 +584,7 @@ void alimentazione(params* input, var* vars){
     if(effettuato){
 
         // Trova il valore massimo della variazione della funzione.
+		//Ovvero il minimo cioè migliore valore della f dell'algoritmo FSS.
         type max=-minimoVettore(vars->deltaf,np);
 
         // Se il valore massimo della variazione della funzione è maggiore di una certa soglia, allora si alimentano i pesci.
@@ -563,9 +594,11 @@ void alimentazione(params* input, var* vars){
             VECTOR ris=get_block(sizeof(type),np);
 
             // Calcola il prodotto scalare tra un vettore e un numero scalare, calcola quindi la normalizzazione della variazione della funzione.
+			//(∆fi/maxj(∆fj))
             prodVet_x_Scalare(vars->deltaf,(type)1.0/max,ris,np);
 
             // Aggiorna i pesi dei pesci.
+			//Wi = Wi + (∆fi/maxj(∆fj))
             subVettori(vars->w,ris,vars->w, np);
 
             // Libera la memoria allocata per il vettore ris.
@@ -575,26 +608,60 @@ void alimentazione(params* input, var* vars){
 }//alimentazione
 
 
-void movimentoIstintivo(params* input, var* vars){
-    if(effettuato){
-        VECTOR I= get_block(sizeof(type),d);
-        VECTOR num= get_block(sizeof(type),d);
-        prodTrasMatVet(vars->deltax,vars->deltaf,num,np,d);
-        type denom=(type)1.0/pesoTot(vars->deltaf,np);
-        if(denom>EPSILON || denom<EPSILON){
-            prodVet_x_Scalare(num,denom,I,d);
-            addMatriceVettoreBroad(input->x,I,d);
-        }//if
+//movimentoIstintivo
+//i pesci che hanno incontrato un maggiore miglioramento attirano i pesci nella propria posizione
+void movimentoIstintivo(params* input, var* vars) {
+    
+	// Verifica se almeno un pesce si è spostato
+    if (effettuato) {
+    
+	    // Alloca memoria per il vettore I di dimensione d
+        VECTOR I = get_block(sizeof(type), d);
+    
+	    // Alloca memoria per un vettore num di dimensione d
+        VECTOR num = get_block(sizeof(type), d);
+    
+	    //Calcola il prodotto tra il vettore deltax, deltaf e mette il risultato in num
+		//sommatoria per i che va da 1 a np di: ∆x · ∆fi --> numeratore
+        prodTrasMatVet(vars->deltax, vars->deltaf, num, np, d);
+    
+	    // Calcola il reciproco del peso totale di deltaf e memorizzalo in denom
+		// 1 / sommatoria per i che va da 1 a np di: ∆fi --> denominatore
+        type denom = (type) 1.0 / pesoTot(vars->deltaf, np);
+    
+	    // Verifica se denom è maggiore di EPSILON o minore di -EPSILON
+        if (denom > EPSILON || denom < -EPSILON) {
+    
+	        // Moltiplica num per denom e memorizza il risultato in I
+			// I = num*denom
+            prodVet_x_Scalare(num, denom, I, d);
+    
+	        // Aggiungi il vettore I alla matrice input->x
+			// xi = xi + I
+            addMatriceVettoreBroad(input->x, I, d);
+        }
+    
+	    // Libera la memoria allocata per I
         free_block(I);
-        free_block(num);	      
-    }//if
+    
+	    // Libera la memoria allocata per num
+        free_block(num);
+    }
 }//mov istintivo
 
-void baricentro(params* input, var* vars){
-    type denom=(type)1.0/pesoTot(vars->w,np);
-    prodTrasMatVet(input->x,vars->w,vars->baricentro,np,d);
-    prodVet_x_Scalare(vars->baricentro,denom,vars->baricentro,d);
-}//baricentro
+void baricentro(params* input, var* vars) {
+    // Calcola il reciproco del peso totale di w e lo memorizza in denom
+	//1 / sommatoria per i che va da 1 a np di: Wi
+    type denom = (type) 1.0 / pesoTot(vars->w, np);
+    
+    // Calcola il prodotto tra la matrice x e il vettore w e memorizza il risultato in baricentro
+	//sommatoria per i che va da 1 a np di: xi · Wi
+    prodTrasMatVet(input->x, vars->w, vars->baricentro, np, d);
+
+    // Moltiplica baricentro per denom e memorizza il risultato in baricentro
+	// baricentro = baricento * denom --> B = (sommatoria per i che va da 1 a np di: xi · Wi) / (sommatoria per i che va da 1 a np di: Wi)
+    prodVet_x_Scalare(vars->baricentro, denom, vars->baricentro, d);
+}
 
 void movimentoVolitivo(params* input, var* vars){ 
     int segno=1;

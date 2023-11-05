@@ -308,17 +308,18 @@ void subVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
 
 
 
-// Funzione funzione()
-type funzione(VECTOR vettore,params* input,int dim){
+// funzione
+// f(x) = e^x + x^2 − c ◦ x
+type funzioneObiettivo(VECTOR x,params* input,int dim){
 
-    // Calcola il prodotto scalare tra il vettore e se stesso.
-    type x2 = prodScalare(vettore,vettore,dim);
+    // Calcola il prodotto scalare tra il vettore x e se stesso.
+    type x2 = prodScalare(x,x,dim);
 
     // Calcola l'esponenziale del prodotto scalare.
     type ex2 = (type)exp(x2);
 
-    // Calcola il prodotto scalare tra il vettore e il vettore c.
-    type cx = prodScalare(input->c,vettore,dim);
+    // Calcola il prodotto scalare tra il vettore x e il vettore c.
+    type cx = prodScalare(input->c,x,dim);
 
     // Restituisce la funzione obiettivo.
     return ex2+x2-cx;
@@ -328,7 +329,7 @@ type funzione(VECTOR vettore,params* input,int dim){
 type funzioneMatrix(MATRIX matrice,params* input,int inizio,int dim){
     //VECTOR vettore=matrice+inizio*dim*sizeof(type);
     VECTOR vettore=copyAlnVector(matrice,inizio,dim);
-	type ret=funzione(vettore,input,dim);
+	type ret=funzioneObiettivo(vettore,input,dim);
     if((inizio%allineamento)!=0)
         free_block(vettore);
 	return ret;
@@ -528,7 +529,7 @@ void movimentoIndividuale(params* input,var* vars,int pesce){
 
     // Calcola la variazione della funzione deltaf tra la nuova posizione e la posizione corrente. 
 	//∆fi = f (yi) − f (xi)
-    type deltaf= funzione(newPosition,input,d)-funzioneMatrix(input->x ,input,pesce*d,d);
+    type deltaf= funzioneObiettivo(newPosition,input,d)-funzioneMatrix(input->x ,input,pesce*d,d);
 
     // Se la variazione della funzione deltaf è negativa, il pesce si sposta alla nuova posizione.
     if(deltaf<0){
@@ -663,28 +664,64 @@ void baricentro(params* input, var* vars) {
     prodVet_x_Scalare(vars->baricentro, denom, vars->baricentro, d);
 }
 
-void movimentoVolitivo(params* input, var* vars){ 
-    int segno=1;
-    if(pesoTot(vars->w,np)>vars->fishesWeight){
-        segno=-1;
-        //printf("pesoAumentato.");
+//movimentoVolitivo
+void movimentoVolitivo(params* input, var* vars) {
+    // Inizializza una variabile segno a 1
+    int segno = 1;
+
+    // Verifica se il peso totale di w è maggiore del valore precedentemente assunto, salvato in fishesWeight.
+    if (pesoTot(vars->w, np) > vars->fishesWeight) {
+        
+		// Se la condizione è vera, cambia il segno a -1
+        segno = -1;
+        // printf(pesoAumentato.);
     }
-    VECTOR ris=get_block(sizeof(type),d);
-    VECTOR volVec=get_block(sizeof(type),d);
-    for(int pesce =0;pesce <np ;pesce++){
-        type rnd=getRand(input,vars);
-        VECTOR x_i=copyAlnVector(input->x,pesce*d,d);
-        type distanza=distEuclidea(x_i,vars->baricentro,d);
-        type scalare=(input->stepvol*rnd*(type)segno)/distanza;
-        subVettori(x_i,vars->baricentro,ris,d);
-        prodVet_x_Scalare(ris,scalare,volVec,d);
-        addMatriceVettore(input->x,volVec,pesce,d);
-        if((pesce*d%allineamento)!=0){
+
+    // Alloca memoria per un vettore xiMinusB di dimensione d
+    VECTOR xiMinusB = get_block(sizeof(type), d);
+
+    // Alloca memoria per un vettore movVolitivo di dimensione d
+    VECTOR movVolitivo = get_block(sizeof(type), d);
+
+    // Loop che itera su ciascun pesce
+    for (int pesce = 0; pesce < np; pesce++) {
+        
+		// Genera un numero casuale 
+        type rnd = getRand(input, vars);
+
+        // Copia il vettore x_i dall'input
+        VECTOR x_i = copyAlnVector(input->x, pesce * d, d);
+
+        // Calcola la distanza euclidea tra x_i e baricentro
+		// dist(xi , B)
+        type distanza = distEuclidea(x_i, vars->baricentro, d);
+
+        // Calcola (segno · stepvol · rand(0, 1)) / dist(xi , B)
+        type scalare = (input->stepvol * rnd * (type)segno) / distanza;
+
+        // Sottrai baricentro da x_i e memorizza il risultato in xiMinusB
+		// xi − B
+        subVettori(x_i, vars->baricentro, xiMinusB, d);
+
+        // Calcola il prodotto tra xiMinusB e scalare e memorizza il risultato in movVolitivo
+		//((segno · stepvol · rand(0, 1)) · (xi − B))/ dist(xi , B)
+        prodVet_x_Scalare(xiMinusB, scalare, movVolitivo, d);
+
+        // Aggiungi movVolitivo alla matrice input->x per il pesce corrente
+		// xi + movVolitivo
+        addMatriceVettore(input->x, movVolitivo, pesce, d);
+
+        // Se la riga corrente non è allineata, libera la memoria allocata per x_i
+        if ((pesce * d % allineamento) != 0) {
             free_block(x_i);
-        }  
-    }//for 
-    free_block(ris);    
-    free_block(volVec);      
+        }
+    }//for
+
+    // Libera la memoria allocata per xiMinusB
+    free_block(xiMinusB);
+    
+    // Libera la memoria allocata per movVolitivo
+    free_block(movVolitivo);
 }//movimentoVolitivo
 
 void minimo(params* input){
@@ -730,31 +767,51 @@ void init(params* input, var* vars){
   
 }
 
-void aggiornaParametri(params* input, var* vars){
-	input->stepind=input->stepind-(vars->stepindIni/iter);
-	input->stepvol=input->stepvol-(vars->stepvolIni/iter);
-}
+//aggiornaParametri
+void aggiornaParametri(params* input, var* vars) {
+    // Aggiorna il valore di stepind: step ind - (step ind (initial) / Itmax )
+    input->stepind = input->stepind - (vars->stepindIni / iter);
 
+    // Aggiorna il valore di stepvol: step vol - (step vol (initial) / Itmax )
+    input->stepvol = input->stepvol - (vars->stepvolIni / iter);
+}//aggiornaParametri
 
+//fss
 void fss(params* input){
     int it =0;   
     var* vars=get_block(sizeof(var),1);
+
+	//Inizializza la posizione xi con d valori casuali e il peso Wi a Wscale / 2
     init(input,vars);
+
+	//Loop principale delle iterazioni
     while (it<iter){
+
+		//Inizializza effettuato a 0, la variabile che tiene traccia se un pesce ha effettuato un movimento.
      	effettuato=0;
+
+		//Loop per eseguire il movimento individuale per ciascun pesce
         for(int pesce=0;pesce<np;pesce++){
+			//Esegue il movimento individuale per il pesce corrente
             movimentoIndividuale(input,vars,pesce);
         }
         
+		//Applica l’operatore di alimentazione
         alimentazione(input,vars);
+		//Esegue il movimento istintivo
         movimentoIstintivo(input,vars);
+		//Calcola il baricentro
         baricentro(input,vars);
+		//Esegue il movimento volitivo
         movimentoVolitivo(input,vars);
+		//Aggiorna i parametri
         aggiornaParametri(input,vars);
     	it+=1;
     }
+
+	//Restituisce la posizione del pesce associata al minimo valore di f 
     minimo(input);	
-}
+}//fss
 
 
 // main dove sono impostati tutti i controlli su parametri di input

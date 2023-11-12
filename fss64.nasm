@@ -86,6 +86,9 @@ distEuclidea:
     mov     rbp, rsp            ; Il Base Pointer punta al Record di Attivazione corrente
     pushaq_distEucl             ; Salva i registri generali
 
+    ;RDI=v1	
+	;RSI=v2
+	;RDX=dim
     							; Inizializza i registri YMM1, RAX e RBX
     VXORPD YMM1, YMM1           ; Inizializza YMM1 a zero
     XOR RAX, RAX                ; Inizializza RAX a zero
@@ -101,6 +104,21 @@ cicloSommaEuclidea:
     VSUBPD YMM0, [RSI + RAX*8]
     VMULPD YMM0, YMM0
     VADDPD YMM1, YMM0			; Somma YMM0 in YMM1
+
+    VMOVAPD YMM2,[RDI + RAX*8+32]        
+    VSUBPD YMM2,[RSI + RAX*8+32]
+    VMULPD YMM2,YMM2
+	VADDPD YMM1,YMM2
+	
+	VMOVAPD YMM3,[RDI + RAX*8+64]        
+    VSUBPD YMM3,[RSI + RAX*8+64]
+    VMULPD YMM3,YMM3
+	VADDPD YMM1,YMM3
+	
+	VMOVAPD YMM4,[RDI + RAX*8+96]        
+    VSUBPD YMM4,[RSI + RAX*8+96]
+    VMULPD YMM4,YMM4
+	VADDPD YMM1,YMM4
 								
 								; RAX = quanti elementi ho processato
 								; Ripeti per i successivi 3 blocchi di 32 byte
@@ -119,6 +137,12 @@ cicloSommaEuclidea_mezzi:
     VSUBPD YMM0, [RSI + RAX*8]
     VMULPD YMM0, YMM0
     VADDPD YMM1, YMM0
+
+    VMOVAPD YMM2,[RDI + RAX*8+32]        
+    VSUBPD YMM2,[RSI + RAX*8+32]
+    VMULPD YMM2,YMM2
+	VADDPD YMM1,YMM2
+
     ADD RAX, 8                   ; Aggiunge 8 a RAX
     JMP cicloSommaEuclidea_mezzi ; Salta di nuovo a cicloSommaEuclidea_mezzi
 
@@ -268,7 +292,7 @@ cicloaddVettorimezzi:
     VMOVAPD [RDX + RAX*8], YMM0
     VMOVAPD [RDX + RAX*8+32], YMM1
     ADD     RAX, 8              ; Incrementa RAX di 8
-    JMP     cicloaddVettorimezzi; Salta di nuovo a cicloaddVettorimezzi
+    JMP     cicloaddVettorimezzi; Salta a cicloaddVettorimezzi
 
 fineaddVettori:
     ADD     RCX, 7              
@@ -341,8 +365,8 @@ ciclosubVettorimezzi:
 
     VMOVAPD [RDX + RAX*8   ], YMM0
     VMOVAPD [RDX + RAX*8+32], YMM1
-    ADD     RAX, 8              ; Incrementa RAX di 8
-    JMP     ciclosubVettorimezzi; Salta di nuovo a ciclosubVettorimezzi
+    ADD     RAX, 8               ; Incrementa RAX di 8
+    JMP     ciclosubVettorimezzi ; Salta di nuovo a ciclosubVettorimezzi
 
 finesubVettori:
     ADD     RCX, 7              
@@ -516,12 +540,12 @@ e6:
     VEXTRACTF128 XMM3, YMM1, 1b              ; Estrae i 128 bit superiori di YMM1 in XMM3
     VADDSD      XMM1, XMM3                   ; Somma i 128 bit inferiori di YMM1
     VADDSD      XMM2, XMM1                   ; Aggiunge il risultato precedente alla somma totale
-    VMOVSD      [risProdScal], XMM2          ; Memorizza il risultato finale
+    VMOVSD      [risSommaEu], XMM2          ; Memorizza il risultato finale
     
     popaq_prodScal                           ; ripristina i registri generali
     mov         rsp, rbp                     ; ripristina lo Stack Pointer
     pop         rbp                          ; ripristina il Base Pointer
-    VMOVSD      XMM0, [risProdScal]
+    VMOVSD      XMM0, [risSommaEu]
     ret                                      ; torna alla funzione C chiamante
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

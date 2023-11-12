@@ -1,0 +1,83 @@
+Si noti che il codice fornito fa ampio uso delle istruzioni SIMD (Single Instruction, Multiple Data) AVX, che consentono di eseguire operazioni su più dati in parallelo. Ecco una spiegazione delle principali istruzioni utilizzate:
+
+    VXORPD:
+        Descrizione: Esegue un'operazione di XOR tra due registri YMM a doppia precisione.
+        Utilizzo nel codice: Inizializza il registro YMM1 a zero.
+
+    XOR:
+        Descrizione: Esegue un'operazione di XOR tra due registri o tra un registro e un valore immediato.
+        Utilizzo nel codice: Inizializza i registri RAX e RBX a zero.
+
+    SUB:
+        Descrizione: Sottrae il secondo operando dal primo.
+        Utilizzo nel codice: Sottrae 16 o 32 da RDX nel ciclo principale.
+
+    CMP:
+        Descrizione: Confronta due operandi senza modificarli. Viene spesso utilizzato con istruzioni di salto condizionale seguenti.
+        Utilizzo nel codice: Compara RDX con zero per decidere se continuare o uscire dal loop.
+
+    JL:
+        Descrizione: Salto condizionale se il risultato del confronto è minore (signed).
+        Utilizzo nel codice: Salta a sommaEuclidea_mezzi o fineSommaEuclidea a seconda del risultato di CMP.
+
+    VMOVAPD e VMOVUPD:
+        Descrizione: Carica un vettore a doppia precisione in un registro YMM da memoria (VMOVAPD richiede allineamento, mentre VMOVUPD no).
+        Utilizzo nel codice: Carica vettori da v1 e v2 in YMM0, YMM2, ecc.
+
+    VSUBPD:
+        Descrizione: Sottrae i dati in due registri YMM a doppia precisione.
+        Utilizzo nel codice: Calcola le differenze tra gli elementi dei vettori.
+
+    VMULPD:
+        Descrizione: Moltiplica i dati in due registri YMM a doppia precisione.
+        Utilizzo nel codice: Calcola i quadrati delle differenze tra gli elementi dei vettori.
+
+Le istruzioni VADDPD e VHADDPD sono entrambe istruzioni SIMD (Single Instruction, Multiple Data) utilizzate nelle estensioni AVX (Advanced Vector Extensions) per eseguire operazioni su vettori a doppia precisione (double precision floating point). Tuttavia, eseguono operazioni diverse.
+
+    VADDPD (Vector Add Packed Double Precision):
+        Descrizione: Esegue un'operazione di somma tra i dati nei registri YMM a doppia precisione, risultando in una somma vettoriale.
+        Utilizzo tipico: È utilizzata per sommare gli elementi corrispondenti di due registri YMM a doppia precisione.
+        Esempio di utilizzo: VADDPD YMM1, YMM1, YMM2 somma gli elementi di YMM1 e YMM2 e memorizza il risultato in YMM1.
+
+    VHADDPD (Vector Horizontal Add Packed Double Precision):
+        Descrizione: Esegue un'operazione di somma orizzontale tra i dati nei registri YMM a doppia precisione. In pratica, somma gli elementi adiacenti e li memorizza nel registro risultante.
+        Utilizzo tipico: È spesso utilizzata per ridurre la larghezza del vettore, sommando elementi adiacenti e producendo un vettore a metà larghezza.
+        Esempio di utilizzo: VHADDPD YMM1, YMM1, YMM1 somma orizzontalmente gli elementi di YMM1 e memorizza il risultato in YMM1.
+
+In sintesi, VADDPD somma gli elementi corrispondenti verticalmente nei registri YMM, mentre VHADDPD somma gli elementi orizzontalmente nei registri YMM. La scelta tra queste due istruzioni dipende dal risultato desiderato e dalla struttura dei dati con cui si sta lavorando.
+
+    VEXTRACTF128:
+        Descrizione: Estrae una metà del vettore YMM e la memorizza in un registro XMM.
+        Utilizzo nel codice: Estrae la metà superiore di YMM1 in XMM0.
+
+    VADDPD:
+        Descrizione: Esegue un'operazione di somma tra i dati nei registri YMM a doppia precisione.
+        Utilizzo nel codice: Somma gli elementi rimanenti in XMM0.
+
+    VSQRTSD:
+        Descrizione: Calcola la radice quadrata di un valore a doppia precisione.
+        Utilizzo nel codice: Calcola la radice quadrata del risultato totale.
+
+    VMOVSD:
+        Descrizione: Memorizza un valore a doppia precisione in memoria.
+        Utilizzo nel codice: Memorizza il risultato finale in memoria.
+
+    RET:
+        Descrizione: Istruzione di ritorno dal sottoprogramma.
+        Utilizzo nel codice: Termina il sottoprogramma e restituisce il controllo al chiamante.
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    push rbp:
+        Descrizione: Questa istruzione mette il valore corrente del registro base (rbp) nello stack.
+        Utilizzo: È comunemente utilizzata per salvare il valore del registro base prima di modificarlo all'interno di una funzione o di un sottoprogramma.
+
+    mov rbp, rsp:
+        Descrizione: Questa istruzione sposta il valore corrente dello stack pointer (rsp) nel registro base (rbp).
+        Utilizzo: Questa operazione è tipicamente eseguita all'inizio di una funzione per creare un nuovo frame di stack (Record di Attivazione) e stabilire un nuovo punto di riferimento per l'accesso alle variabili locali e ai parametri della funzione.
+
+    pushaq_distEucl:
+        Descrizione: Questa istruzione sembra essere una macro o un'abbreviazione specifica di un assembler per eseguire il push di tutti i registri generali. Tuttavia, la sintassi specifica può variare a seconda del compilatore o dell'assemblatore utilizzato.
+        Utilizzo: È usata per salvare tutti i registri generali nello stack prima di eseguire operazioni che potrebbero modificarli. Questo è comunemente fatto all'inizio di una funzione per preservare lo stato dei registri.
+
+Queste istruzioni sono tipiche dell'inizio di una funzione in Assembly x86_64 e sono spesso utilizzate per inizializzare un nuovo frame di stack e salvare i registri necessari prima di eseguire il corpo principale della funzione. Inoltre, pushaq_distEucl sembra essere una convenzione specifica dell'assemblatore per eseguire il push di tutti i registri generali, ma la sintassi esatta potrebbe variare in base al compilatore o all'assemblatore in uso.

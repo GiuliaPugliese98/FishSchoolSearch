@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#PARAMETRI
+#np:  64 d:   8 si:   0.1 sv: 0.0125 w: 1.25 iters:  250
+#np: 735 d: 125 si: 0.006 sv: 0.0008 w: 0.08 iters:  750
+#np: 768 d: 256 si: 0.003 sv: 0.0004 w: 0.04 iters: 1250
+
+
+exec(){
+		START_TIME=$(date +%s%3N);
+	
+			timeout 5 ./fss32comp -c ./data/coeff32_256.ds2 -r ./data/rand32_256_768_1250.ds2 -x ./data/x32_256.ds2 -np 768 -si 0.003 -sv 0.0004 -w 0.04 -it 1250;
+		
+	
+	ELAPSED_TIME=$[ $(date +%s%3N) - $START_TIME ];
+	printf "Total time = %s\n" $ELAPSED_TIME;
+}
+
+exec 

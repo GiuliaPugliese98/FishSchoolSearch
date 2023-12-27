@@ -13,3 +13,4 @@ data/coeff32_256.ds2
 data/coeff32_8.ds2
 data/coeff64_125.ds2
 runfss64omp
+runfss32

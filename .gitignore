@@ -7,3 +7,9 @@ data/rand64_256_768_1250.ds2
 xh32_8_64_250.ds2
 xh64_8_64_250.ds2
 xh32_8_64_250.ds2
+*.ds2
+*.ds2
+data/coeff32_256.ds2
+data/coeff32_8.ds2
+data/coeff64_125.ds2
+runfss64omp

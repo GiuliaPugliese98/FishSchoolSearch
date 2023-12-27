@@ -204,7 +204,7 @@ void save_data(char *filename, void *X, int n, int k)
 
 // PROCEDURE ASSEMBLY
 
-extern void prova(params *input);
+//extern void prova(params *input);
 extern type distEuclidea(VECTOR v1, VECTOR v2, int dim);
 extern type pesoTot(VECTOR v, int dim);
 extern type prodScalare(VECTOR v1, VECTOR v2, int dim);
@@ -221,8 +221,8 @@ extern void prodVet_x_ScalareUn(VECTOR v1, type s, VECTOR ris, int dim);
  * Il ciclo unrollato consente di copiare `unrolling` elementi alla volta, con un miglioramento delle prestazioni.
  * La funzione `get_block()` alloca un blocco di memoria con allineamento a 32 byte, per ottimizzare le prestazioni delle operazioni di memoria.
  */
-// copyAlnVector
-VECTOR copyAlnVector(VECTOR v, int inizio, int dim)
+// copyVector
+VECTOR copyVector(VECTOR v, int inizio, int dim)
 {
 
 	// Controlla se l'indice di inizio è un multiplo dell'allineamento.
@@ -265,7 +265,7 @@ VECTOR copyAlnVector(VECTOR v, int inizio, int dim)
 
 	// Restituisce il puntatore al vettore copiato.
 	return ret;
-} // copyAlnVector
+} // copyVector
 
 /*
 void addVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
@@ -319,7 +319,7 @@ void subVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
 	}
 }*/
 
-// funzione
+// funzioneObiettivo
 // f(x) = e^x + x^2 − c ◦ x
 type funzioneObiettivo(VECTOR x, params *input, int dim)
 {
@@ -335,13 +335,13 @@ type funzioneObiettivo(VECTOR x, params *input, int dim)
 
 	// Restituisce la funzione obiettivo.
 	return ex2 + x2 - cx;
-} // funzione
+} // funzioneObiettivo
 
 // funzioneMatrix
 type funzioneMatrix(MATRIX matrice, params *input, int inizio, int dim)
 {
 	// Copia dalla matrice un vettore di dimensione dim a partire dall'indice inizio sulla variabile vettore
-	VECTOR vettore = copyAlnVector(matrice, inizio, dim);
+	VECTOR vettore = copyVector(matrice, inizio, dim);
 
 	// Calcola il valore della funzione obiettivo su questo vettore
 	type ret = funzioneObiettivo(vettore, input, dim);
@@ -591,7 +591,7 @@ void movimentoIndividuale(params *input, var *vars, int pesce)
 		vars->deltaf[pesce] = deltaf;
 
 		// Copia la posizione corrente del pesce in una variabile temporanea currentFishPosition.
-		VECTOR currentFishPosition = copyAlnVector(input->x, pesce * d, d);
+		VECTOR currentFishPosition = copyVector(input->x, pesce * d, d);
 
 		// Calcola lo spostamento del pesce.
 		VECTOR deltaCurrentFishPosition = get_block(sizeof(type), d);
@@ -750,7 +750,7 @@ void movimentoVolitivo(params *input, var *vars)
 		type rnd = getRand(input, vars);
 
 		// Copia il vettore x_i dall'input
-		VECTOR x_i = copyAlnVector(input->x, pesce * d, d);
+		VECTOR x_i = copyVector(input->x, pesce * d, d);
 
 		// Calcola la distanza euclidea tra x_i e baricentro
 		// dist(xi , B)

@@ -62,9 +62,9 @@ typedef struct
 	int np;		  // numero di pesci, quadrato del parametro np
 	int d;		  // numero di dimensioni del data set
 	int iter;	  // numero di iterazioni
-	type stepind; // parametro stepind
-	type stepvol; // parametro stepvol
-	type wscale;  // parametro wscale
+	type stepind;     // parametro stepind
+	type stepvol;     // parametro stepvol
+	type wscale;      // parametro wscale
 	int display;
 	int silent;
 } params;
@@ -89,7 +89,7 @@ int allineamento = 4;
 int allineamentoPerfetto = 0;
 /*
  *
- *	Le funzioni sono state scritte assumento che le matrici siano memorizzate
+ *	Le funzioni sono state scritte assumendo che le matrici siano memorizzate
  * 	mediante un array (float*), in modo da occupare un unico blocco
  * 	di memoria, ma a scelta del candidato possono essere
  * 	memorizzate mediante array di array (float**).
@@ -205,7 +205,7 @@ void save_data(char *filename, void *X, int n, int k)
 
 // PROCEDURE ASSEMBLY
 
-extern void prova(params *input);
+//extern void prova(params *input);
 extern void addVettori(VECTOR v1, VECTOR v2, VECTOR ris, int dim);
 extern void subVettori(VECTOR v1, VECTOR v2, VECTOR ris, int dim);
 extern type distEuclidea(VECTOR v1, VECTOR v2, int dim);
@@ -311,7 +311,7 @@ void subVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
 }
 */
 
-// funzione
+//funzioneObiettivo
 // f(x) = e^x + x^2 − c ◦ x
 type funzioneObiettivo(VECTOR x, params *input, int dim)
 {
@@ -327,7 +327,7 @@ type funzioneObiettivo(VECTOR x, params *input, int dim)
 
 	// Restituisce la funzione obiettivo.
 	return ex2 + x2 - cx;
-} // funzione
+} // funzioneObiettivo
 
 // funzioneMatrix
 type funzioneMatrix(MATRIX matrice, params *input, int inizio, int dim)

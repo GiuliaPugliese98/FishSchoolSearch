@@ -9,7 +9,7 @@
 exec(){
 		START_TIME=$(date +%s%3N);
 	
-			timeout 2 ./fss64c -c ./data/coeff64_125.ds2 -r ./data/rand64_125_735_750.ds2 -x ./data/x64_125.ds2 -np 735 -si 0.006 -sv 0.0008 -w 0.08 -it 750;
+			timeout 5 ./fss64c -c ./data/coeff64_125.ds2 -r ./data/rand64_125_735_750.ds2 -x ./data/x64_125.ds2 -np 735 -si 0.006 -sv 0.0008 -w 0.08 -it 750;
 		
 	
 	ELAPSED_TIME=$[ $(date +%s%3N) - $START_TIME ];

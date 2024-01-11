@@ -220,7 +220,6 @@ extern type prodScalare(VECTOR v1, VECTOR v2, int dim);
 // copyVector
 VECTOR copyVector(VECTOR v, int inizio, int dim)
 {
-
 	// Controlla se l'indice di inizio è un multiplo dell'allineamento.
 	if (inizio % allineamento == 0)
 		return v + inizio;
@@ -527,7 +526,6 @@ void zeroRowMatrix(MATRIX matrix, int riga, int dim)
 {
 
 	// Azzera tutti gli elementi della riga di matrice specificata da riga.
-	#pragma omp parallel for 
 	for (int i = 0; i < dim; i++)
 	{
 		matrix[riga * dim + i] = 0;
@@ -539,7 +537,6 @@ void replaceMatrixRowVector(MATRIX matrix, VECTOR vector, int riga, int dim)
 {
 
 	// Sostituisce la riga di matrice specificata da riga con il vettore vector.
-	#pragma omp parallel for 
 	for (int i = 0; i < dim; i++)
 	{
 		matrix[riga * dim + i] = vector[i];
@@ -562,7 +559,6 @@ void generaPosizioneCasuale(VECTOR pos, MATRIX posPesci, int pesce, int dim, par
 // movimentoIndividuale
 void movimentoIndividuale(params *input, var *vars, int pesce, int it)
 {
-
 	// Dichiara una variabile newPosition di tipo VECTOR e alloca in memoria d elementi di tipo type.
 	VECTOR newPosition = get_block(sizeof(type), d);
 
@@ -730,15 +726,18 @@ void movimentoVolitivo(params *input, var *vars, int it)
 		// printf(pesoAumentato.);
 	}
 
+	// Alloca memoria per un vettore xiMinusB di dimensione d
+	MATRIX xiMinusBMatrix = alloc_matrix(np, d);
+
+	// Alloca memoria per un vettore movVolitivo di dimensione d
+	MATRIX movVolitivoMatrix = alloc_matrix(np, d);
+	
 	// Loop che itera su ciascun pesce
 	#pragma omp parallel for 
 	for (int pesce = 0; pesce < np; pesce++)
 	{
-	        // Alloca memoria per un vettore xiMinusB di dimensione d
-	        VECTOR xiMinusB = get_block(sizeof(type), d);
-
-	        // Alloca memoria per un vettore movVolitivo di dimensione d
-	        VECTOR movVolitivo = get_block(sizeof(type), d);
+		VECTOR xiMinusB = copyVector(xiMinusBMatrix, pesce, d);
+		VECTOR movVolitivo = copyVector(movVolitivoMatrix, pesce, d);
 
 		// Genera un numero casuale
 		type rnd = getRand(input, it, pesce, d, 1);
@@ -764,19 +763,19 @@ void movimentoVolitivo(params *input, var *vars, int it)
 		// Aggiungi movVolitivo alla matrice input->x per il pesce corrente
 		// xi + movVolitivo
 		addMatriceVettore(input->x, movVolitivo, pesce, d);
-
-                // Libera la memoria allocata per xiMinusB
-	        free_block(xiMinusB);
-
-	        // Libera la memoria allocata per movVolitivo
-	        free_block(movVolitivo);
-
+			
 		// Se la riga corrente non è allineata, libera la memoria allocata per x_i
 		if ((pesce * d % allineamento) != 0)
 		{
 			free_block(x_i);
-		}		
+		}	
 	} // for
+
+	// Libera la memoria allocata per xiMinusB
+	dealloc_matrix(xiMinusBMatrix);
+
+	// Libera la memoria allocata per movVolitivo
+	dealloc_matrix(movVolitivoMatrix);
 } // movimentoVolitivo
 
 // minimo

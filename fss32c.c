@@ -315,7 +315,6 @@ void subVettori(VECTOR v1,VECTOR v2, VECTOR ris, int dim){
 // f(x) = e^x + x^2 − c ◦ x
 type funzioneObiettivo(VECTOR x, params *input, int dim)
 {
-
 	// Calcola il prodotto scalare tra il vettore x e se stesso.
 	type x2 = prodScalare(x, x, dim);
 
@@ -737,7 +736,6 @@ void movimentoVolitivo(params *input, var *vars)
 	// Loop che itera su ciascun pesce
 	for (int pesce = 0; pesce < np; pesce++)
 	{
-
 		// Genera un numero casuale
 		type rnd = getRand(input, vars);
 

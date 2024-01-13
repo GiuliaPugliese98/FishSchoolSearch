@@ -476,13 +476,13 @@ void prodTrasMatVet(MATRIX matrix, VECTOR vector, VECTOR ris, int righe, int dim
 				addVettori(ris, parz, ris, dim);
 				
 				prodVet_x_ScalareUn(matrix+(pesce+1)*dim,vector[pesce+1],parz,dim);
-                                addVettori(ris,parz,ris,dim);
-                                
-                                prodVet_x_ScalareUn(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
-                                addVettori(ris,parz,ris,dim);
-                                
-                                prodVet_x_ScalareUn(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
-                                addVettori(ris,parz,ris,dim);
+				addVettori(ris,parz,ris,dim);
+
+				prodVet_x_ScalareUn(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
+				addVettori(ris,parz,ris,dim);
+
+				prodVet_x_ScalareUn(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
+				addVettori(ris,parz,ris,dim);
 			}
 			else
 			{
@@ -493,14 +493,14 @@ void prodTrasMatVet(MATRIX matrix, VECTOR vector, VECTOR ris, int righe, int dim
 				// Somma parz a ris
 				addVettori(ris, parz, ris, dim);
 				
-                               prodVet_x_ScalareUn(matrix+(pesce+1)*dim,vector[pesce+1],parz,dim);
-                               addVettori(ris,parz,ris,dim);
-                               
-                               prodVet_x_ScalareUn(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
-                               addVettori(ris,parz,ris,dim);
-                               
-                               prodVet_x_ScalareUn(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
-                               addVettori(ris,parz,ris,dim);
+				prodVet_x_ScalareUn(matrix+(pesce+1)*dim,vector[pesce+1],parz,dim);
+				addVettori(ris,parz,ris,dim);
+				
+				prodVet_x_ScalareUn(matrix+(pesce+2)*dim,vector[pesce+2],parz,dim);
+				addVettori(ris,parz,ris,dim);
+				
+				prodVet_x_ScalareUn(matrix+(pesce+3)*dim,vector[pesce+3],parz,dim);
+				addVettori(ris,parz,ris,dim);
 			}
 		}
 	}
@@ -560,9 +560,7 @@ type minimoVettore(VECTOR vector, int dim)
 // zeroRowMatrix
 void zeroRowMatrix(MATRIX matrix, int riga, int dim)
 {
-
 	// Azzera tutti gli elementi della riga di matrice specificata da riga.
-	#pragma omp parallel for
 	for (int i = 0; i < dim; i++)
 	{
 		matrix[riga * dim + i] = 0;
@@ -574,7 +572,6 @@ void replaceMatrixRowVector(MATRIX matrix, VECTOR vector, int riga, int dim)
 {
 
 	// Sostituisce la riga di matrice specificata da riga con il vettore vector.
-	#pragma omp parallel for
 	for (int i = 0; i < dim; i++)
 	{
 		matrix[riga * dim + i] = vector[i];
@@ -767,15 +764,18 @@ void movimentoVolitivo(params *input, var *vars, int it)
 		// printf(pesoAumentato.);
 	}
 
+	// Alloca memoria per una matrice xiMinusB di dimensione np*d
+	MATRIX xiMinusBMatrix = alloc_matrix(np, d);
+
+	// Alloca memoria per una matrice xiMinusB di dimensione np*d
+	MATRIX movVolitivoMatrix = alloc_matrix(np, d);
+
 	// Loop che itera su ciascun pesce
 	#pragma omp parallel for
 	for (int pesce = 0; pesce < np; pesce++)
 	{
-      	        // Alloca memoria per un vettore xiMinusB di dimensione d
-	        VECTOR xiMinusB = get_block(sizeof(type), d);
-
-	        // Alloca memoria per un vettore movVolitivo di dimensione d
-	        VECTOR movVolitivo = get_block(sizeof(type), d);
+	    VECTOR xiMinusB = copyVector(xiMinusBMatrix, pesce, d);
+		VECTOR movVolitivo = copyVector(movVolitivoMatrix, pesce, d);
 
 		// Genera un numero casuale
 		type rnd = getRand(input, it, pesce, d, 1);
@@ -802,19 +802,18 @@ void movimentoVolitivo(params *input, var *vars, int it)
 		// xi + movVolitivo
 		addMatriceVettore(input->x, movVolitivo, pesce, d);
 
-                // Libera la memoria allocata per xiMinusB
-	        free_block(xiMinusB);
-
-	        // Libera la memoria allocata per movVolitivo
-	        free_block(movVolitivo);
-
 		// Se la riga corrente non è allineata, libera la memoria allocata per x_i
 		if ((pesce * d % allineamento) != 0)
 		{
 			free_block(x_i);
-		}
+		}	
 	} // for
+	
+	// Libera la memoria allocata per xiMinusBMatrix
+	dealloc_matrix(xiMinusBMatrix);
 
+	// Libera la memoria allocata per movVolitivoMatrix
+	dealloc_matrix(movVolitivoMatrix);
 } // movimentoVolitivo
 
 // minimo

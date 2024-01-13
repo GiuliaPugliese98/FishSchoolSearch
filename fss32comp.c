@@ -726,10 +726,10 @@ void movimentoVolitivo(params *input, var *vars, int it)
 		// printf(pesoAumentato.);
 	}
 
-	// Alloca memoria per un vettore xiMinusB di dimensione d
+	// Alloca memoria per una matrice xiMinusB di dimensione np*d
 	MATRIX xiMinusBMatrix = alloc_matrix(np, d);
 
-	// Alloca memoria per un vettore movVolitivo di dimensione d
+	// Alloca memoria per uuna matrice xiMinusB di dimensione np*d
 	MATRIX movVolitivoMatrix = alloc_matrix(np, d);
 	
 	// Loop che itera su ciascun pesce
@@ -771,10 +771,10 @@ void movimentoVolitivo(params *input, var *vars, int it)
 		}	
 	} // for
 
-	// Libera la memoria allocata per xiMinusB
+	// Libera la memoria allocata per xiMinusBMatrix
 	dealloc_matrix(xiMinusBMatrix);
 
-	// Libera la memoria allocata per movVolitivo
+	// Libera la memoria allocata per movVolitivoMatrix
 	dealloc_matrix(movVolitivoMatrix);
 } // movimentoVolitivo
 
